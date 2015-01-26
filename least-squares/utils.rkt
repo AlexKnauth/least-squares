@@ -31,6 +31,8 @@
   [#:λ (x) (for/sum ([(power coefficient) (in-hash hsh)])
              (* coefficient (expt x power)))])
 
+(define-function-struct c*e^ax (c a) [#:λ (x) (* c (exp (* a x)))])
+
 (begin-for-syntax
   (define-splicing-syntax-class x^n #:datum-literals (x^ ^ x)
     #:attributes (n)

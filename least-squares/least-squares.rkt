@@ -4,13 +4,16 @@
          quadratic-least-squares
          polynomial-least-squares
          best-polynomial
+         exponential-least-squares/logy
          (struct-out mx+b)
          (struct-out ax^2+bx+c)
          (struct-out power-function)
+         (struct-out c*e^ax)
          power-function:
          )
 
 (require racket/match
+         racket/list
          math/matrix
          syntax/parse/define
          infix/infix-macro
@@ -112,6 +115,15 @@
 (define (best-polynomial points)
   (polynomial-least-squares (sub1 (length points)) points))
 
+(define (exponential-least-squares/logy points)
+  (define points/logy
+    (for/list ([p (in-list points)])
+      (match-define (list x y) p)
+      (list x (log y))))
+  (match-define (mx+b m b) (linear-least-squares points/logy))
+  ;; e^(mx+b) = e^b*e^mx
+  (c*e^ax (exp b) m))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module+ test
@@ -135,4 +147,6 @@
       (for ([p (in-list ps)])
         (match-define (list x y) p)
         (check-equal? (f x) y))))
+  (check-equal? (exponential-least-squares/logy '([-2 1/4] [-1 1/2] [0 1.0] [1 2] [2 4]))
+                (c*e^ax 1.0 (log 2)))
   )
