@@ -11,7 +11,6 @@
          )
 
 (require racket/match
-         racket/math
          math/matrix
          syntax/parse/define
          infix/infix-macro
@@ -120,10 +119,10 @@
   (check-equal? (linear-least-squares '([0 0] [1 2] [2 1])) (mx+b 1/2 1/2))
   (check-equal? (quadratic-least-squares '([0 0] [1 1] [2 4])) (ax^2+bx+c 1 0 0))
   (check-equal? (quadratic-least-squares '([0 1] [-1 0] [2 -3])) (ax^2+bx+c -1 0 1))
-  (check-match (polynomial-least-squares 1 '([0 0] [1 1] [2 2])) (power-function: [1 x] [0]))
-  (check-match (polynomial-least-squares 1 '([0 0] [1 2] [2 1])) (power-function: [1/2 x] [1/2]))
-  (check-match (polynomial-least-squares 2 '([0 0] [1 1] [2 4])) (power-function: [1 x^ 2] [0 x] [0]))
-  (check-match (polynomial-least-squares 2 '([0 1] [-1 0] [2 -3])) (power-function:[-1 x^ 2][0 x][1]))
+  (check-match (polynomial-least-squares 1 '([0 0] [1 1] [2 2])) (power-function: x))
+  (check-match (polynomial-least-squares 1 '([0 0] [1 2] [2 1])) (power-function: 1/2 x + 1/2))
+  (check-match (polynomial-least-squares 2 '([0 0] [1 1] [2 4])) (power-function: 1 x^2))
+  (check-match (polynomial-least-squares 2 '([0 1] [-1 0] [2 -3])) (power-function: - x^2 + 1))
   (define (exact-random n)
     (* (case (random 2) [(0) 1] [(1) -1])
        (+ (random n) (inexact->exact (random)))))
