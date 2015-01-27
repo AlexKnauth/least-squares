@@ -1,10 +1,38 @@
 #lang racket/base
 
+(provide plot-linear-least-squares
+         plot-quadratic-least-squares
+         plot-polynomial-least-squares
+         )
+
 (require plot
          racket/list
-         racket/function
          "least-squares.rkt"
          )
+
+(define (my-plot . args)
+  (plot (list* (axes) (tick-grid) (filter-not void? (flatten args)))))
+
+(define (plot-linear-least-squares ps)
+  (my-plot (function (linear-least-squares ps))
+           (points ps)))
+
+(define (plot-quadratic-least-squares ps)
+  (my-plot (function (quadratic-least-squares ps))
+           (points ps)))
+
+(define (plot-polynomial-least-squares n ps)
+  (my-plot (function (polynomial-least-squares n ps))
+           (points ps)))
+
+(define (plot-best-polynomial ps)
+  (my-plot (function (best-polynomial ps))
+           (points ps)))
+
+(define (plot-exponential-least-squares/logy ps)
+  (my-plot (function (exponential-least-squares/logy ps))
+           (points ps)))
+
 
 (define (exact-random n)
   (* (case (random 2) [(0) 1] [(1) -1])
@@ -14,15 +42,13 @@
   (for/list ([i (in-range n)])
     (list (exact-random within+-) (exact-random within+-))))
 
-(define (my-plot . args)
-  (plot (cons (axes) (filter-not void? (flatten args)))))
 
-(define (plot-linear-least-squares n)
+(define (plot-linear-least-squares/random n)
   (define ps (random-points n 10))
   (my-plot (function (linear-least-squares ps) -10 10)
            (points ps)))
 
-(define (plot-perfect-polynomial n #:both? [both? #f])
+(define (plot-best-polynomial/random n #:both? [both? #f])
   (define rect
     (rectangles (list (list (ivl -10 10) (ivl -10 10)))))
   (define ps (random-points n 10))
