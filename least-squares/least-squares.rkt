@@ -130,6 +130,7 @@
   (check-equal? (linear-least-squares '([0 0] [1 1] [2 2])) (mx+b 1 0))
   (check-equal? (linear-least-squares '([0 0] [1 2] [2 1])) (mx+b 1/2 1/2))
   (check-equal? (linear-least-squares '([0 1] [2 1] [3 4])) (mx+b 6/7 4/7))
+  (check-equal? (linear-least-squares '([0 0] [1 2] [2 1] [3 4])) (mx+b 11/10 1/10))
   (check-equal? (quadratic-least-squares '([0 0] [1 1] [2 4])) (ax^2+bx+c 1 0 0))
   (check-equal? (quadratic-least-squares '([0 1] [-1 0] [2 -3])) (ax^2+bx+c -1 0 1))
   (check-equal? (quadratic-least-squares '([0 1] [2 1] [3 4])) (ax^2+bx+c 1 -2 1))
