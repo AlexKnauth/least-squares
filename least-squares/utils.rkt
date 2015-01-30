@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/math
+         racket/string
          math/matrix
          syntax/parse/define
          (for-syntax racket/base syntax/parse unstable/syntax))
@@ -102,4 +103,27 @@
 
 (define-simple-macro (defmulti [id:id val:expr] ...)
   (begin (define id val) ...))
+
+(define (function-struct->string f #:x [x "x"] #:y [y "y"])
+  (define (d x)
+    (cond [(integer? x) (inexact->exact x)]
+          [else (exact->inexact x)]))
+  (match f
+    [(mx+b m b)        (format "~a = ~v*~a + ~v" y (d m) x (d b))]
+    [(ax^2+bx+c a b c) (format "~a = ~v*~a^2 + ~v*~a + ~v" y (d a) x (d b) x (d c))]
+    [(power-function (hash-table)) (format "~a = 0" y)]
+    [(power-function hsh)
+     (let* ([lst (hash->list hsh)]
+            [lst (sort lst > #:key car)])
+       (string-join
+        #:before-first (format "~a = " y)
+        (for/list ([p (in-list lst)])
+          (match-define (cons n a) p)
+          (match n
+            [0 (format "~v" (d a))]
+            [1 (format "~v*~a" (d a) x)]
+            [n (format "~v*~a^~v" (d a) x n)]))
+        " + "))]
+    [(c*e^ax c a) (format "~a = ~v*e^(~v*~a)" y (d c) (d a) x)]
+    ))
 

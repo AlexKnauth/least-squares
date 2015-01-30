@@ -6,31 +6,38 @@
          )
 
 (require plot
+         racket/match
          racket/list
          "least-squares.rkt"
+         "utils.rkt"
          )
 
 (define (my-plot . args)
   (plot (list* (axes) (tick-grid) (filter-not void? (flatten args)))))
 
 (define (plot-linear-least-squares ps)
-  (my-plot (function (linear-least-squares ps))
+  (define f (linear-least-squares ps))
+  (my-plot (function f #:label (function-struct->string f))
            (points ps)))
 
 (define (plot-quadratic-least-squares ps)
-  (my-plot (function (quadratic-least-squares ps))
+  (define f (quadratic-least-squares ps))
+  (my-plot (function f #:label (function-struct->string f))
            (points ps)))
 
 (define (plot-polynomial-least-squares n ps)
-  (my-plot (function (polynomial-least-squares n ps))
+  (define f (polynomial-least-squares n ps))
+  (my-plot (function f #:label (function-struct->string f))
            (points ps)))
 
 (define (plot-best-polynomial ps)
-  (my-plot (function (best-polynomial ps))
+  (define f (best-polynomial ps))
+  (my-plot (function f #:label (function-struct->string f))
            (points ps)))
 
 (define (plot-exponential-least-squares/logy ps)
-  (my-plot (function (exponential-least-squares/logy ps))
+  (define f (exponential-least-squares/logy ps))
+  (my-plot (function f #:label (function-struct->string f))
            (points ps)))
 
 
