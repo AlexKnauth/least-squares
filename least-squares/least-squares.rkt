@@ -5,6 +5,7 @@
          polynomial-least-squares
          best-polynomial
          exponential-least-squares/logy
+         linear-least-squares-3d
          (struct-out mx+b)
          (struct-out ax^2+bx+c)
          (struct-out power-function)
@@ -184,6 +185,8 @@
   (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 0] [0 1 0])) (ax+by+c 0 0 0))
   (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 1] [0 1 0])) (ax+by+c 1 0 0))
   (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 0] [0 1 1])) (ax+by+c 0 1 0))
+  (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 1] [0 1 1])) (ax+by+c 1 1 0))
+  (check-equal? (linear-least-squares-3d '([0 0 3/2] [2 0 1] [0 1 2])) (ax+by+c -1/4 1/2 3/2))
   (test-case "best-polynomial"
     (for ([n (in-range 1 15)])
       (define ps

@@ -3,6 +3,9 @@
 (provide plot-linear-least-squares
          plot-quadratic-least-squares
          plot-polynomial-least-squares
+         plot-best-polynomial
+         plot-exponential-least-squares/logy
+         plot-linear-least-squares-3d
          )
 
 (require plot
@@ -14,6 +17,9 @@
 
 (define (my-plot . args)
   (plot (list* (axes) (tick-grid) (filter-not void? (flatten args)))))
+
+(define (my-plot3d . args)
+  (plot3d (list* (filter-not void? (flatten args)))))
 
 (define (plot-linear-least-squares ps)
   (define f (linear-least-squares ps))
@@ -39,6 +45,11 @@
   (define f (exponential-least-squares/logy ps))
   (my-plot (function f #:label (function-struct->string f))
            (points ps)))
+
+(define (plot-linear-least-squares-3d ps)
+  (define f (linear-least-squares-3d ps))
+  (my-plot3d (surface f)
+             (points3d ps)))
 
 
 (define (random-points n within+-)
