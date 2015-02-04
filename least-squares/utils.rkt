@@ -120,6 +120,11 @@
         (check-equal? (f x y) (g x y))))
     ))
 
+(define (ax+by+c a b c)
+  (multi-var-taylor-ish
+   (list (array c)
+         (array #[a b]))))
+
 (begin-for-syntax
   (define-splicing-syntax-class x^n #:datum-literals (x^ ^ x)
     #:attributes (n)
