@@ -6,8 +6,11 @@
          racket/math
          racket/string
          math/matrix
+         math/array
+         math/number-theory
          syntax/parse/define
          (for-syntax racket/base syntax/parse unstable/syntax))
+(module+ test (require rackunit))
 
 (define-match-expander -:
   (syntax-parser [(-: pat:expr) #'(app - pat)])
@@ -17,12 +20,12 @@
   (syntax-parser [(hash-table: stuff ...) #'(hash-table stuff ...)])
   (syntax-parser [(hash-table: [k:expr v:expr] ...) #'(make-immutable-hash (list (cons k v) ...))]))
 
-(define-simple-macro (define-function-struct name:id (field:id ...) [#:λ args result:expr])
+(define-simple-macro (define-function-struct name:id (field:id ...) [#:λ args result:expr ...+])
   (struct name (field ...) #:transparent
     #:property prop:procedure
     (let ([name (lambda (this . args)
                   (match-define (name field ...) this)
-                  result)])
+                  result ...)])
       name)))
 
 (define-function-struct mx+b (m b) [#:λ (x) (+ (* m x) b)])
@@ -33,6 +36,89 @@
              (* coefficient (expt x power)))])
 
 (define-function-struct c*e^ax (c a) [#:λ (x) (* c (exp (* a x)))])
+
+(define-function-struct multi-var-taylor-ish (lst)
+  [#:λ args
+       (define d (length args))
+       (for/sum ([arr (in-list lst)]
+                 [n (in-naturals)])
+         (define arr.shape (array-shape arr))
+         (unless (= n (vector-length arr.shape))
+           (error 'multi-var-taylor-ish "wrong shape for array\n  shape: ~v\n  expected: ~v"
+                  arr.shape (vector->immutable-vector (make-vector n d))))
+         (for ([dim (in-vector arr.shape)])
+           (unless (= dim d) (error 'multi-var-taylor-ish "\n  dim: ~v\n  d: ~v" dim d)))
+         (define n! (factorial n))
+         (* (/ n!)
+            (for/sum ([p (in-array arr)]
+                      [is (in-array-indexes arr.shape)])
+              (* p (for/product ([i (in-vector is)])
+                     (list-ref args i))))))])
+(module+ test
+  (define-syntax (chk stx)
+    (define-syntax-class cls
+      [pattern [a:expr e:expr] #:with norm (syntax/loc this-syntax (check-equal? a e))])
+    (syntax-parse stx
+      [(chk :cls ...) #'(begin norm ...)]))
+  (test-case "multi-var-taylor-ish"
+    (test-case "f() = 1"
+      (define f
+        (multi-var-taylor-ish
+         (list (array 1))))
+      (check-equal? (f) 1))
+    (test-case "f(x) = 1 + 2*x"
+      (define (g x) (+ 1 (* 2 x)))
+      (define f
+        (multi-var-taylor-ish
+         (list (array 1)
+               (array #[2]))))
+      (check-equal? (f 0) 1)
+      (check-equal? (f 1) 3)
+      (check-equal? (f 2) 5)
+      (for ([i (in-range 100)])
+        (define x (exact-random/sgn 100))
+        (check-equal? (f x) (g x))))
+    (test-case "f(x) = 1 + 2*x + 3*x^2"
+      (define (g x) (+ 1 (* 2 x) (* 3 (expt x 2))))
+      (define f
+        (multi-var-taylor-ish
+         (list (array 1)
+               (array #[2])
+               (array #[#[6]]))))
+      (check-equal? (f 0) 1)
+      (check-equal? (f 1) 6)
+      (check-equal? (f 2) 17)
+      (for ([i (in-range 100)])
+        (define x (exact-random/sgn 100))
+        (check-equal? (f x) (g x))))
+    (test-case "f(x,y) = 1 + 2*x + 3*y"
+      (define (g x y) (+ 1 (* 2 x) (* 3 y)))
+      (define f
+        (multi-var-taylor-ish
+         (list (array 1)
+               (array #[2 3]))))
+      (chk [(f 0 0) 1] [(f 1 0) 3] [(f 2 0) 5]
+           [(f 0 1) 4] [(f 1 1) 6] [(f 2 1) 8]
+           [(f 0 2) 7] [(f 1 2) 9] [(f 2 2) 11])
+      (for ([i (in-range 100)])
+        (define x (exact-random/sgn 100))
+        (define y (exact-random/sgn 100))
+        (check-equal? (f x y) (g x y))))
+    (test-case "f(x,y) = 1 + 2*x + 3*y + 4*x^2 + 5*x*y + 6*y^2"
+      (define (g x y) (+ 1 (* 2 x) (* 3 y) (* 4 (expt x 2)) (* 5 x y) (* 6 (expt y 2))))
+      (define f
+        (multi-var-taylor-ish
+         (list (array 1)
+               (array #[2 3])
+               (array #[#[8 5] #[5 12]]))))
+      (chk [(f 0 0)  1] [(f 1 0)  7] [(f 2 0) 21]
+           [(f 0 1) 10] [(f 1 1) 21] [(f 2 1) 40]
+           [(f 0 2) 31] [(f 1 2) 47] [(f 2 2) 71])
+      (for ([i (in-range 100)])
+        (define x (exact-random/sgn 100))
+        (define y (exact-random/sgn 100))
+        (check-equal? (f x y) (g x y))))
+    ))
 
 (begin-for-syntax
   (define-splicing-syntax-class x^n #:datum-literals (x^ ^ x)
@@ -126,4 +212,11 @@
         " + "))]
     [(c*e^ax c a) (format "~a = ~v*e^(~v*~a)" y (d c) (d a) x)]
     ))
+
+(define (exact-random n)
+  (+ (random n) (inexact->exact (random))))
+
+(define (exact-random/sgn n)
+  (define sgn (case (random 2) [(0) 1] [(1) -1]))
+  (* sgn (exact-random n)))
 

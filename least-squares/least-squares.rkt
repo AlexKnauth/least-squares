@@ -15,11 +15,15 @@
 (require racket/match
          racket/list
          math/matrix
+         math/array
          syntax/parse/define
          infix/infix-macro
          "utils.rkt"
          (for-syntax racket/base syntax/parse))
 (module+ test (require rackunit))
+
+(define-simple-macro (defmatrix id:id [[e:expr ...] ...])
+  (define id (matrix [[e ...] ...])))
 
 (define (linear-least-squares points)
   (define-simple-macro (∑ expr:expr ...)
@@ -42,8 +46,8 @@
     [∑yi    (∑ yi)])
   ;; [[ ∑xi^2  ∑xi ]  . [[ a ]   = [[ ∑xi*yi ]
   ;;  [  ∑xi    n  ]]    [ b ]]     [  ∑yi   ]]
-  (define M (matrix [[ ∑xi^2  ∑xi ]
-                     [  ∑xi    n  ]]))
+  (defmatrix M [[ ∑xi^2  ∑xi ]
+                [  ∑xi    n  ]])
   (define M^-1 (matrix-inverse M))
   (define X (matrix* M^-1 (matrix [[ ∑xi*yi ]
                                    [  ∑yi   ]])))
@@ -75,9 +79,9 @@
   ;; [[ ∑xi^4  ∑xi^3  ∑xi^2 ]    [[ a ]    [[ ∑xi^2*yi ]
   ;;  [ ∑xi^3  ∑xi^2   ∑xi  ]  *  [ b ]  =  [  ∑xi*yi  ]
   ;;  [ ∑xi^2   ∑xi     n   ]]    [ c ]]    [   ∑yi    ])
-  (define M (matrix [[ ∑xi^4  ∑xi^3  ∑xi^2 ]
-                     [ ∑xi^3  ∑xi^2   ∑xi  ]
-                     [ ∑xi^2   ∑xi     n   ]]))
+  (defmatrix M [[ ∑xi^4  ∑xi^3  ∑xi^2 ]
+                [ ∑xi^3  ∑xi^2   ∑xi  ]
+                [ ∑xi^2   ∑xi     n   ]])
   (define M^-1 (matrix-inverse M))
   (define X (matrix* M^-1 (matrix [[ ∑xi^2*yi ]
                                    [  ∑xi*yi  ]
@@ -124,6 +128,46 @@
   ;; e^(mx+b) = e^b*e^mx
   (c*e^ax (exp b) m))
 
+(define (linear-least-squares-3d points)
+  (define-simple-macro (∑ expr:expr ...)
+    #:with [x-id y-id z-id] (syntax-local-introduce #'[xi yi zi])
+    (for/sum ([p (in-list points)])
+      (match-define (list x-id y-id z-id) p)
+      (: expr ...)))
+  ;; D = ∑[(a*xi + b*yi + c - zi)^2]
+  ;; ∂D/∂a = 2*∑[xi*(a*xi + b*yi + c - zi)]
+  ;; ∂D/∂b = 2*∑[yi*(a*xi + b*yi + c - zi)]
+  ;; ∂D/∂c = 2*∑[ 1*(a*xi + b*yi + c - zi)]
+  ;;  ∑[xi^2]*a + ∑[xi*yi]*b + ∑[xi]*c = ∑[xi*zi]
+  ;; ∑[xi*yi]*a +  ∑[yi^2]*b + ∑[yi]*c = ∑[yi*zi]
+  ;;    ∑[xi]*a +    ∑[yi]*b +     n*c = ∑[zi]
+  (defmulti
+    [n (length points)]
+    [∑xi^2  (∑ xi ^ 2)]
+    [∑xi*yi (∑ xi * yi)]
+    [∑xi    (∑ xi)]
+    [∑yi^2  (∑ yi ^ 2)]
+    [∑yi    (∑ yi)]
+    [∑xi*zi (∑ xi * zi)]
+    [∑yi*zi (∑ yi * zi)]
+    [∑zi    (∑ zi)])
+  ;; [[ ∑xi^2   ∑xi*yi  ∑xi ]    [[ a ]    [[ ∑xi*zi ]
+  ;;  [ ∑xi*yi  ∑yi^2   ∑yi ]  *  [ b ]  =  [ ∑yi*zi ]
+  ;;  [  ∑xi     ∑yi     n  ]]    [ c ]]    [  ∑zi   ]]
+  (defmatrix M [[ ∑xi^2   ∑xi*yi  ∑xi ]
+                [ ∑xi*yi  ∑yi^2   ∑yi ]
+                [  ∑xi     ∑yi     n  ]])
+  (define M^-1 (matrix-inverse M))
+  (define X (matrix* M^-1 (matrix [[ ∑xi*zi ]
+                                   [ ∑yi*zi ]
+                                   [  ∑zi   ]])))
+  (match-define (matrix: [[a] [b] [c]]) X)
+  (multi-var-taylor-ish
+   (list (array c)
+         (array #[a b]))))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (module+ test
@@ -138,14 +182,11 @@
   (check-match (polynomial-least-squares 1 '([0 0] [1 2] [2 1])) (power-function: 1/2 x + 1/2))
   (check-match (polynomial-least-squares 2 '([0 0] [1 1] [2 4])) (power-function: 1 x^2))
   (check-match (polynomial-least-squares 2 '([0 1] [-1 0] [2 -3])) (power-function: - x^2 + 1))
-  (define (exact-random n)
-    (* (case (random 2) [(0) 1] [(1) -1])
-       (+ (random n) (inexact->exact (random)))))
   (test-case "best-polynomial"
     (for ([n (in-range 1 15)])
       (define ps
         (for/list ([i (in-range n)])
-          (list (exact-random 100) (exact-random 100))))
+          (list (exact-random/sgn 100) (exact-random/sgn 100))))
       (define f (best-polynomial ps))
       (for ([p (in-list ps)])
         (match-define (list x y) p)

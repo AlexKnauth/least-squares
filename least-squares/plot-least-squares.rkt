@@ -41,13 +41,9 @@
            (points ps)))
 
 
-(define (exact-random n)
-  (* (case (random 2) [(0) 1] [(1) -1])
-     (+ (random n) (inexact->exact (random)))))
-
 (define (random-points n within+-)
   (for/list ([i (in-range n)])
-    (list (exact-random within+-) (exact-random within+-))))
+    (list (exact-random/sgn within+-) (exact-random/sgn within+-))))
 
 
 (define (plot-linear-least-squares/random n)
