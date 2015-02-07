@@ -12,6 +12,26 @@
          (for-syntax racket/base syntax/parse unstable/syntax))
 (module+ test (require rackunit))
 
+(define-match-expander matrix:
+  (syntax-parser [(matrix: [[pat:expr ...] ...])
+                  #'(? matrix? (app matrix->list* (list (list pat ...) ...)))])
+  (syntax-parser [(matrix: [[v:expr ...] ...])
+                  #'(matrix [[v ...] ...])]))
+
+(define-match-expander array:
+  (lambda (stx)
+    (define-syntax-class thing
+      [pattern #[thng:thing ...] #:with lst* #'(list thng.lst* ...)]
+      [pattern pat:expr #:with lst* #'pat])
+    (syntax-parse stx
+      [(array: thng:thing)
+       #'(? array? (app array->list* thng.lst*))]))
+  (syntax-parser [(array: thng)
+                  #'(array thng)]))
+
+(define-simple-macro (defmulti [id:id val:expr] ...)
+  (begin (define id val) ...))
+
 (define-match-expander -:
   (syntax-parser [(-: pat:expr) #'(app - pat)])
   (make-variable-like-transformer #'-))
@@ -125,6 +145,14 @@
    (list (array c)
          (array #[a b]))))
 
+(define-match-expander ax+by+c:
+  (syntax-parser [(ax+by+c: a:expr b:expr c:expr)
+                  #'(multi-var-taylor-ish
+                     (list (array: c)
+                           (array: #[a b])))])
+  (syntax-parser [(ax+by+c: a:expr b:expr c:expr)
+                  #'(ax+by+c a b c)]))
+
 (begin-for-syntax
   (define-splicing-syntax-class x^n #:datum-literals (x^ ^ x)
     #:attributes (n)
@@ -186,22 +214,15 @@
   (match-define (power-function: a x^2 + b x + c) f)
   (ax^2+bx+c a b c))
 
-(define-match-expander matrix:
-  (syntax-parser [(matrix: [[pat:expr ...] ...])
-                  #'(? matrix? (app matrix->list* (list (list pat ...) ...)))])
-  (syntax-parser [(matrix: [[v:expr ...] ...])
-                  #'(matrix [[v ...] ...])]))
-
-(define-simple-macro (defmulti [id:id val:expr] ...)
-  (begin (define id val) ...))
-
-(define (function-struct->string f #:x [x "x"] #:y [y "y"])
+(define (function-struct->string f #:y [y "y"] #:xs [xs '("x")])
   (define (d x)
     (cond [(integer? x) (inexact->exact x)]
           [else (exact->inexact x)]))
+  (define (x i)
+    (list-ref xs i))
   (match f
-    [(mx+b m b)        (format "~a = ~v*~a + ~v" y (d m) x (d b))]
-    [(ax^2+bx+c a b c) (format "~a = ~v*~a^2 + ~v*~a + ~v" y (d a) x (d b) x (d c))]
+    [(mx+b m b)        (format "~a = ~v*~a + ~v" y (d m) (x 0) (d b))]
+    [(ax^2+bx+c a b c) (format "~a = ~v*~a^2 + ~v*~a + ~v" y (d a) (x 0) (d b) (x 0) (d c))]
     [(power-function (hash-table)) (format "~a = 0" y)]
     [(power-function hsh)
      (let* ([lst (hash->list hsh)]
@@ -212,10 +233,18 @@
           (match-define (cons n a) p)
           (match n
             [0 (format "~v" (d a))]
-            [1 (format "~v*~a" (d a) x)]
-            [n (format "~v*~a^~v" (d a) x n)]))
+            [1 (format "~v*~a" (d a) (x 0))]
+            [n (format "~v*~a^~v" (d a) (x 0) n)]))
         " + "))]
-    [(c*e^ax c a) (format "~a = ~v*e^(~v*~a)" y (d c) (d a) x)]
+    [(c*e^ax c a) (format "~a = ~v*e^(~v*~a)" y (d c) (d a) (x 0))]
+    [(multi-var-taylor-ish (list)) (format "~a = 0" y)]
+    [(multi-var-taylor-ish (list (array: a))) (format "~a = ~v" y a)]
+    [(multi-var-taylor-ish (list (array: a) (array: #[b ...])))
+     (string-join
+      #:before-first (format "~a = ~v" y a)
+      (for/list ([b (in-list b)] [x (in-list xs)])
+        (format " + ~v*~a" b x))
+      "")]
     ))
 
 (define (exact-random n)

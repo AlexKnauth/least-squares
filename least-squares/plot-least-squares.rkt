@@ -48,7 +48,7 @@
 
 (define (plot-linear-least-squares-3d ps)
   (define f (linear-least-squares-3d ps))
-  (my-plot3d (surface f)
+  (my-plot3d (surface3d f #:label (function-struct->string f #:y "z" #:xs '("x" "y")))
              (points3d ps)))
 
 
