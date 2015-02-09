@@ -27,12 +27,17 @@
 (define-simple-macro (defmatrix id:id [[e:expr ...] ...])
   (define id (matrix [[e ...] ...])))
 
-(define (linear-least-squares points)
-  (define-simple-macro ∑[expr:expr ...]
-    #:with [x-id y-id] (syntax-local-introduce #'[xi yi])
+(define-simple-macro (def∑ ∑ [id:id ...] points:id)
+  #:with [tmp:id ...] (generate-temporaries #'[id ...])
+  #:with ooo (quote-syntax ...)
+  (define-simple-macro ∑[expr:expr ooo]
+    #:with [tmp ...] (syntax-local-introduce #'[id ...])
     (for/sum ([p (in-list points)])
-      (match-define (list x-id y-id) p)
-      (: expr ...)))
+      (match-define (list tmp ...) p)
+      (: expr ooo))))
+
+(define (linear-least-squares points)
+  (def∑ ∑ [xi yi] points)
   ;; D = ∑[([a*xi + b] - yi)^2]
   ;; ∂D/∂a = ∑[2*([a*xi + b] - yi)*xi] = ∑[2*(xi^2*a + xi*b - xi*yi)]
   ;; ∂D/∂b = ∑[2*([a*xi + b] - yi)*1]  = ∑[2*(xi*a + b - yi)]
@@ -57,11 +62,7 @@
   (mx+b a b))
 
 (define (quadratic-least-squares points)
-  (define-simple-macro ∑[expr:expr ...]
-    #:with [x-id y-id] (syntax-local-introduce #'[xi yi])
-    (for/sum ([p (in-list points)])
-      (match-define (list x-id y-id) p)
-      (: expr ...)))
+  (def∑ ∑ [xi yi] points)
   ;; D = ∑[([a*xi^2 + b*xi + c] - yi)^2]
   ;; ∂D/∂a = ∑[2*([a*xi^2 + b*xi + c] - yi)*xi^2] = ∑[2*(xi^4*a + xi^3*b + xi^2*c - xi^2*yi)]
   ;; ∂D/∂b = ∑[2*([a*xi^2 + b*xi + c] - yi)*xi]   = ∑[2*(xi^3*a + xi^2*b + xi*c - xi*yi)]
@@ -92,11 +93,7 @@
   (ax^2+bx+c a b c))
 
 (define (polynomial-least-squares n points)
-  (define-simple-macro ∑[expr:expr ...]
-    #:with [x-id y-id] (syntax-local-introduce #'[xi yi])
-    (for/sum ([p (in-list points)])
-      (match-define (list x-id y-id) p)
-      (: expr ...)))
+  (def∑ ∑ [xi yi] points)
   (define |(list ∑xi^(2n) ∑xi^(2n-1) ... ∑xi^0)|
     (for/list ([k (in-range {2 * n} -1 -1)])
       ∑[xi ^ k]))
@@ -131,11 +128,7 @@
   (c*e^ax (exp b) m))
 
 (define (linear-least-squares-3d points)
-  (define-simple-macro ∑[expr:expr ...]
-    #:with [x-id y-id z-id] (syntax-local-introduce #'[xi yi zi])
-    (for/sum ([p (in-list points)])
-      (match-define (list x-id y-id z-id) p)
-      (: expr ...)))
+  (def∑ ∑ [xi yi zi] points)
   ;; D = ∑[(a*xi + b*yi + c - zi)^2]
   ;; ∂D/∂a = 2*∑[xi*(a*xi + b*yi + c - zi)]
   ;; ∂D/∂b = 2*∑[yi*(a*xi + b*yi + c - zi)]
