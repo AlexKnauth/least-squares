@@ -1,4 +1,4 @@
-#lang racket/base
+#lang sweet-exp racket/base
 
 (provide linear-least-squares
          quadratic-least-squares
@@ -28,7 +28,7 @@
   (define id (matrix [[e ...] ...])))
 
 (define (linear-least-squares points)
-  (define-simple-macro (∑ expr:expr ...)
+  (define-simple-macro ∑[expr:expr ...]
     #:with [x-id y-id] (syntax-local-introduce #'[xi yi])
     (for/sum ([p (in-list points)])
       (match-define (list x-id y-id) p)
@@ -42,10 +42,10 @@
   ;;   ∑[xi]*a +     n*b = ∑[yi]
   (defmulti
     [n (length points)]
-    [∑xi^2  (∑ xi ^ 2)]
-    [∑xi    (∑ xi)]
-    [∑xi*yi (∑ xi * yi)]
-    [∑yi    (∑ yi)])
+    [∑xi^2  ∑[xi ^ 2]]
+    [∑xi    ∑[xi]]
+    [∑xi*yi ∑[xi * yi]]
+    [∑yi    ∑[yi]])
   ;; [[ ∑xi^2  ∑xi ]  . [[ a ]   = [[ ∑xi*yi ]
   ;;  [  ∑xi    n  ]]    [ b ]]     [  ∑yi   ]]
   (defmatrix M [[ ∑xi^2  ∑xi ]
@@ -57,7 +57,7 @@
   (mx+b a b))
 
 (define (quadratic-least-squares points)
-  (define-simple-macro (∑ expr:expr ...)
+  (define-simple-macro ∑[expr:expr ...]
     #:with [x-id y-id] (syntax-local-introduce #'[xi yi])
     (for/sum ([p (in-list points)])
       (match-define (list x-id y-id) p)
@@ -71,13 +71,13 @@
   ;; ∑[xi^2]*a +   ∑[xi]*b +       n*c = ∑[yi]
   (defmulti
     [n (length points)]
-    [∑xi^4    (∑ xi ^ 4)]
-    [∑xi^3    (∑ xi ^ 3)]
-    [∑xi^2    (∑ xi ^ 2)]
-    [∑xi      (∑ xi)]
-    [∑xi^2*yi (∑ xi ^ 2 * yi)]
-    [∑xi*yi   (∑ xi * yi)]
-    [∑yi      (∑ yi)])
+    [∑xi^4    ∑[xi ^ 4]]
+    [∑xi^3    ∑[xi ^ 3]]
+    [∑xi^2    ∑[xi ^ 2]]
+    [∑xi      ∑[xi]]
+    [∑xi^2*yi ∑[xi ^ 2 * yi]]
+    [∑xi*yi   ∑[xi * yi]]
+    [∑yi      ∑[yi]])
   ;; [[ ∑xi^4  ∑xi^3  ∑xi^2 ]    [[ a ]    [[ ∑xi^2*yi ]
   ;;  [ ∑xi^3  ∑xi^2   ∑xi  ]  *  [ b ]  =  [  ∑xi*yi  ]
   ;;  [ ∑xi^2   ∑xi     n   ]]    [ c ]]    [   ∑yi    ])
@@ -92,17 +92,17 @@
   (ax^2+bx+c a b c))
 
 (define (polynomial-least-squares n points)
-  (define-simple-macro (∑ expr:expr ...)
+  (define-simple-macro ∑[expr:expr ...]
     #:with [x-id y-id] (syntax-local-introduce #'[xi yi])
     (for/sum ([p (in-list points)])
       (match-define (list x-id y-id) p)
       (: expr ...)))
   (define |(list ∑xi^(2n) ∑xi^(2n-1) ... ∑xi^0)|
-    (for/list ([k (in-range (: 2 * n) -1 -1)])
-      (∑ xi ^ k)))
+    (for/list ([k (in-range {2 * n} -1 -1)])
+      ∑[xi ^ k]))
   (define |(list ∑xi^n*yi ∑xi^(n-1)*yi ... ∑xi^0*yi)|
     (for/list ([k (in-range n -1 -1)])
-      (∑ xi ^ k * yi)))
+      ∑[xi ^ k * yi]))
   (define M-list* (for/list ([row-num (in-range (add1 n))])
                     (for/list ([col-num (in-range (add1 n))])
                       (list-ref |(list ∑xi^(2n) ∑xi^(2n-1) ... ∑xi^0)|
@@ -131,7 +131,7 @@
   (c*e^ax (exp b) m))
 
 (define (linear-least-squares-3d points)
-  (define-simple-macro (∑ expr:expr ...)
+  (define-simple-macro ∑[expr:expr ...]
     #:with [x-id y-id z-id] (syntax-local-introduce #'[xi yi zi])
     (for/sum ([p (in-list points)])
       (match-define (list x-id y-id z-id) p)
@@ -145,14 +145,14 @@
   ;;    ∑[xi]*a +    ∑[yi]*b +     n*c = ∑[zi]
   (defmulti
     [n (length points)]
-    [∑xi^2  (∑ xi ^ 2)]
-    [∑xi*yi (∑ xi * yi)]
-    [∑xi    (∑ xi)]
-    [∑yi^2  (∑ yi ^ 2)]
-    [∑yi    (∑ yi)]
-    [∑xi*zi (∑ xi * zi)]
-    [∑yi*zi (∑ yi * zi)]
-    [∑zi    (∑ zi)])
+    [∑xi^2  ∑[xi ^ 2]]
+    [∑xi*yi ∑[xi * yi]]
+    [∑xi    ∑[xi]]
+    [∑yi^2  ∑[yi ^ 2]]
+    [∑yi    ∑[yi]]
+    [∑xi*zi ∑[xi * zi]]
+    [∑yi*zi ∑[yi * zi]]
+    [∑zi    ∑[zi]])
   ;; [[ ∑xi^2   ∑xi*yi  ∑xi ]    [[ a ]    [[ ∑xi*zi ]
   ;;  [ ∑xi*yi  ∑yi^2   ∑yi ]  *  [ b ]  =  [ ∑yi*zi ]
   ;;  [  ∑xi     ∑yi     n  ]]    [ c ]]    [  ∑zi   ]]
