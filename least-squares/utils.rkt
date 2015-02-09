@@ -12,6 +12,11 @@
          (for-syntax racket/base syntax/parse unstable/syntax))
 (module+ test (require rackunit))
 
+(define-syntax app (make-rename-transformer #'#%app))
+
+(define-simple-macro (defmatrix id:id [[e:expr ...] ...])
+  (define id (matrix [[e ...] ...])))
+
 (define-match-expander matrix:
   (syntax-parser [(matrix: [[pat:expr ...] ...])
                   #'(? matrix? (app matrix->list* (list (list pat ...) ...)))])
@@ -47,9 +52,6 @@
                   (match-define (name field ...) this)
                   result ...)])
       name)))
-
-(define-function-struct mx+b (m b) [#:λ (x) (+ (* m x) b)])
-(define-function-struct ax^2+bx+c (a b c) [#:λ (x) (+ (* a (sqr x)) (* b x) c)])
 
 (define-function-struct power-function (hsh)
   [#:λ (x) (for/sum ([(power coefficient) (in-hash hsh)])
@@ -140,23 +142,58 @@
         (check-equal? (f x y) (g x y))))
     ))
 
-(define (ax+by+c a b c)
+(define (make-mx+b m b)
+  (multi-var-taylor-ish
+   (list (array b)
+         (array #[m]))))
+
+(define-match-expander mx+b
+  (syntax-parser
+    [(mx+b m:expr b:expr)
+     #'(multi-var-taylor-ish
+        (list (array: b)
+              (array: #[m])))])
+  (make-variable-like-transformer #'make-mx+b))
+
+(define (make-ax^2+bx+c a b c)
+  (multi-var-taylor-ish
+   (list (array c)
+         (array #[b])
+         (array #[(* 2 c)]))))
+
+(define-match-expander ax^2+bx+c
+  (syntax-parser
+    [(ax^2+bx+c a:expr b:expr c:expr)
+     #'(multi-var-taylor-ish
+        (list (array: c)
+              (array: #[b])
+              (array: #[#[(app (λ (x) (* 1/2 x)) a)]])))])
+  (make-variable-like-transformer #'make-ax^2+bx+c))
+
+
+(define (make-ax+by+c a b c)
   (multi-var-taylor-ish
    (list (array c)
          (array #[a b]))))
 
-(define (ax+by+cz+d a b c d)
+(define (make-ax+by+cz+d a b c d)
   (multi-var-taylor-ish
    (list (array d)
          (array #[a b c]))))
 
-(define-match-expander ax+by+c:
-  (syntax-parser [(ax+by+c: a:expr b:expr c:expr)
+(define-match-expander ax+by+c
+  (syntax-parser [(ax+by+c a:expr b:expr c:expr)
                   #'(multi-var-taylor-ish
                      (list (array: c)
                            (array: #[a b])))])
-  (syntax-parser [(ax+by+c: a:expr b:expr c:expr)
-                  #'(ax+by+c a b c)]))
+  (make-variable-like-transformer #'make-ax+by+c))
+
+(define-match-expander ax+by+cz+d
+  (syntax-parser [(ax+by+cz+d a:expr b:expr c:expr d:expr)
+                  #'(multi-var-taylor-ish
+                     (list (array: c)
+                           (array: #[a b c])))])
+  (make-variable-like-transformer #'make-ax+by+cz+d))
 
 (begin-for-syntax
   (define-splicing-syntax-class x^n #:datum-literals (x^ ^ x)

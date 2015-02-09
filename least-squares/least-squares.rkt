@@ -6,11 +6,13 @@
          best-polynomial
          exponential-least-squares/logy
          linear-least-squares-3d
-         (struct-out mx+b)
-         (struct-out ax^2+bx+c)
+         mx+b
+         ax^2+bx+c
          (struct-out power-function)
          (struct-out c*e^ax)
          (struct-out multi-var-taylor-ish)
+         ax+by+c
+         ax+by+cz+d
          power-function:
          )
 
@@ -24,19 +26,22 @@
          (for-syntax racket/base syntax/parse))
 (module+ test (require rackunit))
 
-(define-simple-macro (defmatrix id:id [[e:expr ...] ...])
-  (define id (matrix [[e ...] ...])))
-
-(define-simple-macro (def∑ ∑ [id:id ...] points:id)
-  #:with [tmp:id ...] (generate-temporaries #'[id ...])
+(define-simple-macro (def∑ ∑ [pat-id:id ...] points:id)
+  #:with [tmp:id ...] (generate-temporaries #'[pat-id ...])
+  #:with app-id1 (syntax-local-introduce #'#%app)
   #:with ooo (quote-syntax ...)
-  (define-simple-macro ∑[expr:expr ooo]
-    #:with [tmp ...] (syntax-local-introduce #'[id ...])
+  (define-simple-macro ∑[e:expr ooo]
+    #:with [tmp ... app-id2] (syntax-local-introduce (quote-syntax [pat-id ... app-id1]))
     (for/sum ([p (in-list points)])
+      (define-syntax app-id2
+        (syntax-parser
+          [(_ f:id i:expr) #'(cond [(app list? f) (app list-ref f i)]
+                                   [else (app f i)])]
+          [(_ . stuff) #'(app . stuff)]))
       (match-define (list tmp ...) p)
-      (: expr ooo))))
+      (: e ooo))))
 
-(define (linear-least-squares points)
+(define (linear-least-squares-2d points)
   (def∑ ∑ [xi yi] points)
   ;; D = ∑[([a*xi + b] - yi)^2]
   ;; ∂D/∂a = ∑[2*([a*xi + b] - yi)*xi] = ∑[2*(xi^2*a + xi*b - xi*yi)]
@@ -127,6 +132,15 @@
   ;; e^(mx+b) = e^b*e^mx
   (c*e^ax (exp b) m))
 
+(define (linear-least-squares-0d points)
+  (multi-var-taylor-ish '()))
+
+(define (linear-least-squares-1d points)
+  (def∑ ∑ [yi] points)
+  (define n (length points))
+  (define a {∑[yi] / n})
+  (multi-var-taylor-ish (list (array a))))
+
 (define (linear-least-squares-3d points)
   (def∑ ∑ [xi yi zi] points)
   ;; D = ∑[(a*xi + b*yi + c - zi)^2]
@@ -200,6 +214,42 @@
                                    [  ∑w  ]])))
   (match-define (matrix: [[a] [b] [c] [d]]) X)
   (ax+by+cz+d a b c d))
+
+(define (linear-least-squares points)
+  (def∑ ∑ [x ... w] points)
+  (define n (apply max 0 (map length points)))
+  (match n
+    [0 (linear-least-squares-0d points)]
+    [1 (linear-least-squares-1d points)]
+    [2 (linear-least-squares-2d points)]
+    [3 (linear-least-squares-3d points)]
+    [4 (linear-least-squares-4d points)]
+    [n (define M-lst
+         (for/list ([r (in-range n)])
+           (for/list ([c (in-range n)])
+             (cond [(and (< r (sub1 n)) (< c (sub1 n)))
+                    ∑(x[r] * x[c])]
+                   [(and (= r (sub1 n)) (< c (sub1 n)))
+                    ∑(x[c])]
+                   [(and (< r (sub1 n)) (= c (sub1 n)))
+                    ∑(x[r])]
+                   [else
+                    ∑(1)]))))
+       (define M (list*->matrix M-lst))
+       (define M^-1 (matrix-inverse M))
+       (define X (matrix* M^-1 (list*->matrix
+                                (for/list ([row-i (in-range n)])
+                                  (list
+                                   (cond [(< row-i (sub1 n))
+                                          (for/sum ([p (in-list points)])
+                                            (* (list-ref p row-i) (list-ref p (sub1 n))))]
+                                         [else
+                                          (for/sum ([p (in-list points)])
+                                            (list-ref p (sub1 n)))]))))))
+       (match-define (array: #[#[a] ... #[c]]) X)
+       (multi-var-taylor-ish
+        (list (array c)
+              (list*->array a real?)))]))
 
 
 
