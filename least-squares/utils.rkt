@@ -145,6 +145,11 @@
    (list (array c)
          (array #[a b]))))
 
+(define (ax+by+cz+d a b c d)
+  (multi-var-taylor-ish
+   (list (array d)
+         (array #[a b c]))))
+
 (define-match-expander ax+by+c:
   (syntax-parser [(ax+by+c: a:expr b:expr c:expr)
                   #'(multi-var-taylor-ish

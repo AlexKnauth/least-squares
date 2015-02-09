@@ -159,6 +159,48 @@
   (match-define (matrix: [[a] [b] [c]]) X)
   (ax+by+c a b c))
 
+(define (linear-least-squares-4d points)
+  (def∑ ∑ [x y z w] points)
+  ;; D = ∑[(a*x + b*y + c*z + d - w)^2]
+  ;; ∂D/∂a = 2*∑[x*(a*x + b*y + c*z + d - zi)]
+  ;; ∂D/∂b = 2*∑[y*(a*x + b*y + c*z + d - zi)]
+  ;; ∂D/∂c = 2*∑[z*(a*x + b*y + c*z + d - zi)]
+  ;; ∂D/∂d = 2*∑[1*(a*x + b*y + c*z + d - zi)]
+  ;; ∑[x^2]*a + ∑[x*y]*b + ∑[x*z]*c + ∑[x]*d = ∑[x*w]
+  ;; ∑[x*y]*a + ∑[y^2]*b + ∑[y*z]*c + ∑[y]*d = ∑[y*w]
+  ;; ∑[x*z]*a + ∑[y*z]*b + ∑[z^2]*c + ∑[z]*d = ∑[z*w]
+  ;;   ∑[x]*a +   ∑[y]*b +   ∑[z]*c +    n*d = ∑[w]
+  (defmulti
+    [n (length points)]
+    [∑x^2 ∑[x ^ 2]]
+    [∑y^2 ∑[y ^ 2]]
+    [∑z^2 ∑[z ^ 2]]
+    [∑x*y ∑[x * y]]
+    [∑x*z ∑[x * z]]
+    [∑y*z ∑[y * z]]
+    [∑x*w ∑[x * w]]
+    [∑y*w ∑[y * w]]
+    [∑z*w ∑[z * w]]
+    [∑x   ∑[x]]
+    [∑y   ∑[y]]
+    [∑z   ∑[z]]
+    [∑w   ∑[w]])
+  ;; [[ ∑x^2  ∑x*y  ∑x*z  ∑x ]    [[ a ]    [[ ∑x*w ]
+  ;;  [ ∑x*y  ∑y^2  ∑y*z  ∑y ]  .  [ b ]  =  [ ∑y*w ]
+  ;;  [ ∑x*z  ∑y*z  ∑z^2  ∑z ]     [ c ]     [ ∑z*w ]
+  ;;  [  ∑x    ∑y    ∑z   n  ]]    [ d ]]    [  ∑w  ]]
+  (defmatrix M [[ ∑x^2  ∑x*y  ∑x*z  ∑x ]
+                [ ∑x*y  ∑y^2  ∑y*z  ∑y ]
+                [ ∑x*z  ∑y*z  ∑z^2  ∑z ]
+                [  ∑x    ∑y    ∑z   n  ]])
+  (define M^-1 (matrix-inverse M))
+  (define X (matrix* M^-1 (matrix [[ ∑x*w ]
+                                   [ ∑y*w ]
+                                   [ ∑z*w ]
+                                   [  ∑w  ]])))
+  (match-define (matrix: [[a] [b] [c] [d]]) X)
+  (ax+by+cz+d a b c d))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -181,6 +223,8 @@
   (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 0] [0 1 1])) (ax+by+c 0 1 0))
   (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 1] [0 1 1])) (ax+by+c 1 1 0))
   (check-equal? (linear-least-squares-3d '([0 0 3/2] [2 0 1] [0 1 2])) (ax+by+c -1/4 1/2 3/2))
+  (check-equal? (linear-least-squares-4d '([0 0 0 3/2] [2 0 0 1] [0 1 0 2] [0 0 1 0]))
+                (ax+by+cz+d -1/4 1/2 -3/2 3/2))
   (test-case "best-polynomial"
     (for ([n (in-range 1 15)])
       (define ps
