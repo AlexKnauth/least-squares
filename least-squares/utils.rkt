@@ -94,9 +94,10 @@
   (for ([arr (in-list lst)]
         [n   (in-naturals)])
     (define arr.shape (array-shape arr))
-    (unless (= n (vector-length arr.shape))
+    (define expected-shape (vector->immutable-vector (make-vector n d)))
+    (unless (equal? arr.shape expected-shape)
       (error name "wrong shape for array\n  shape: ~v\n  expected: ~v"
-             arr.shape (vector->immutable-vector (make-vector n d)))))
+             arr.shape expected-shape)))
   (struct multi-var-taylor-ish super-multi-var-taylor-ish () #:transparent
     #:property prop:procedure
     (procedure-reduce-arity
