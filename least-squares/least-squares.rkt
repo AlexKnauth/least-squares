@@ -219,11 +219,11 @@
   (def∑ ∑ [x ... w] points)
   (define n (apply max 0 (map length points)))
   (match n
-    [0 (linear-least-squares-0d points)]
-    [1 (linear-least-squares-1d points)]
-    [2 (linear-least-squares-2d points)]
-    [3 (linear-least-squares-3d points)]
-    [4 (linear-least-squares-4d points)]
+    ;[0 (linear-least-squares-0d points)]
+    ;[1 (linear-least-squares-1d points)]
+    ;[2 (linear-least-squares-2d points)]
+    ;[3 (linear-least-squares-3d points)]
+    ;[4 (linear-least-squares-4d points)]
     [n (define M-lst
          (for/list ([r (in-range n)])
            (for/list ([c (in-range n)])
@@ -268,12 +268,12 @@
   (check-match (polynomial-least-squares 1 '([0 0] [1 2] [2 1])) (power-function: 1/2 x + 1/2))
   (check-match (polynomial-least-squares 2 '([0 0] [1 1] [2 4])) (power-function: 1 x^2))
   (check-match (polynomial-least-squares 2 '([0 1] [-1 0] [2 -3])) (power-function: - x^2 + 1))
-  (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 0] [0 1 0])) (ax+by+c 0 0 0))
-  (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 1] [0 1 0])) (ax+by+c 1 0 0))
-  (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 0] [0 1 1])) (ax+by+c 0 1 0))
-  (check-equal? (linear-least-squares-3d '([0 0 0] [1 0 1] [0 1 1])) (ax+by+c 1 1 0))
-  (check-equal? (linear-least-squares-3d '([0 0 3/2] [2 0 1] [0 1 2])) (ax+by+c -1/4 1/2 3/2))
-  (check-equal? (linear-least-squares-4d '([0 0 0 3/2] [2 0 0 1] [0 1 0 2] [0 0 1 0]))
+  (check-equal? (linear-least-squares '([0 0 0] [1 0 0] [0 1 0])) (ax+by+c 0 0 0))
+  (check-equal? (linear-least-squares '([0 0 0] [1 0 1] [0 1 0])) (ax+by+c 1 0 0))
+  (check-equal? (linear-least-squares '([0 0 0] [1 0 0] [0 1 1])) (ax+by+c 0 1 0))
+  (check-equal? (linear-least-squares '([0 0 0] [1 0 1] [0 1 1])) (ax+by+c 1 1 0))
+  (check-equal? (linear-least-squares '([0 0 3/2] [2 0 1] [0 1 2])) (ax+by+c -1/4 1/2 3/2))
+  (check-equal? (linear-least-squares '([0 0 0 3/2] [2 0 0 1] [0 1 0 2] [0 0 1 0]))
                 (ax+by+cz+d -1/4 1/2 -3/2 3/2))
   (test-case "best-polynomial"
     (for ([n (in-range 1 15)])

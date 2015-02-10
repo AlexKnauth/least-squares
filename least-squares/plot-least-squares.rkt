@@ -5,7 +5,6 @@
          plot-polynomial-least-squares
          plot-best-polynomial
          plot-exponential-least-squares/logy
-         plot-linear-least-squares-3d
          )
 
 (require plot
@@ -23,8 +22,14 @@
 
 (define (plot-linear-least-squares ps)
   (define f (linear-least-squares ps))
-  (my-plot (function f #:label (function-struct->string f))
-           (points ps)))
+  (match (procedure-arity f)
+    [0 (define y (f))
+       (my-plot (function (λ (x) y) #:label (function-struct->string f #:y "y" #:xs '("x")))
+                (points ps))]
+    [1 (my-plot (function f #:label (function-struct->string f #:y "y" #:xs '("x")))
+                (points ps))]
+    [2 (my-plot3d (surface3d f #:label (function-struct->string f #:y "z" #:xs '("x" "y")))
+                  (points3d ps))]))
 
 (define (plot-quadratic-least-squares ps)
   (define f (quadratic-least-squares ps))
@@ -45,11 +50,6 @@
   (define f (exponential-least-squares/logy ps))
   (my-plot (function f #:label (function-struct->string f))
            (points ps)))
-
-(define (plot-linear-least-squares-3d ps)
-  (define f (linear-least-squares-3d ps))
-  (my-plot3d (surface3d f #:label (function-struct->string f #:y "z" #:xs '("x" "y")))
-             (points3d ps)))
 
 
 (define (random-points n within+-)
