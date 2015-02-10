@@ -9,7 +9,7 @@
          math/array
          math/number-theory
          syntax/parse/define
-         (for-syntax racket/base syntax/parse unstable/syntax))
+         (for-syntax racket/base syntax/parse unstable/syntax syntax/name seq-no-order))
 (module+ test (require rackunit))
 
 (define-syntax app (make-rename-transformer #'#%app))
@@ -59,23 +59,66 @@
 
 (define-function-struct c*e^ax (c a) [#:λ (x) (* c (exp (* a x)))])
 
-(define-function-struct multi-var-taylor-ish (lst)
-  [#:λ args
-       (define d (length args))
-       (for/sum ([arr (in-list lst)]
-                 [n (in-naturals)])
-         (define arr.shape (array-shape arr))
-         (unless (= n (vector-length arr.shape))
-           (error 'multi-var-taylor-ish "wrong shape for array\n  shape: ~v\n  expected: ~v"
-                  arr.shape (vector->immutable-vector (make-vector n d))))
-         (for ([dim (in-vector arr.shape)])
-           (unless (= dim d) (error 'multi-var-taylor-ish "\n  dim: ~v\n  d: ~v" dim d)))
-         (define n! (factorial n))
-         (* (/ n!)
-            (for/sum ([p (in-array arr)]
-                      [is (in-array-indexes arr.shape)])
-              (* p (for/product ([i (in-vector is)])
-                     (list-ref args i))))))])
+(define (app-multi-var-taylor-ish f . args)
+  (match-define (super-multi-var-taylor-ish lst) f)
+  (define d (length args))
+  (for/sum ([arr (in-list lst)]
+            [n (in-naturals)])
+    (define arr.shape (array-shape arr))
+    (define n! (factorial n))
+    (* (/ n!)
+       (for/sum ([p (in-array arr)]
+                 [is (in-array-indexes arr.shape)])
+         (* p (for/product ([i (in-vector is)])
+                (list-ref args i)))))))
+
+(struct super-multi-var-taylor-ish (lst) #:transparent
+  #:methods gen:equal+hash
+  [(define (equal-proc a b sub-equal?)
+     (match-define (super-multi-var-taylor-ish a.lst) a)
+     (match-define (super-multi-var-taylor-ish b.lst) b)
+     (sub-equal? a.lst b.lst))
+   (define (hash-proc a sub-hash-code)
+     (match-define (super-multi-var-taylor-ish a.lst) a)
+     (add1 (sub-hash-code a.lst)))
+   (define (hash2-proc a sub-hash-code)
+     (match-define (super-multi-var-taylor-ish a.lst) a)
+     (+ 2 (sub-hash-code a.lst)))])
+
+(define (make-multi-var-taylor-ish lst #:name [name 'multi-var-taylor-ish])
+  (define d
+    (match lst
+      [(list) 0]
+      [(list _) 0]
+      [(list _ (array: #[a ...]) _ ...) (length a)]))
+  (for ([arr (in-list lst)]
+        [n   (in-naturals)])
+    (define arr.shape (array-shape arr))
+    (unless (= n (vector-length arr.shape))
+      (error name "wrong shape for array\n  shape: ~v\n  expected: ~v"
+             arr.shape (vector->immutable-vector (make-vector n d)))))
+  (struct multi-var-taylor-ish super-multi-var-taylor-ish () #:transparent
+    #:property prop:procedure
+    (procedure-reduce-arity
+     (procedure-rename app-multi-var-taylor-ish name)
+     (add1 d)))
+  (multi-var-taylor-ish lst))
+
+(define-match-expander multi-var-taylor-ish
+  (syntax-parser
+    [(multi-var-taylor-ish lst-pat:expr)
+     #'(super-multi-var-taylor-ish lst-pat)])
+  (lambda (stx)
+    (syntax-parse stx
+      [(multi-var-taylor-ish lst:expr)
+       #:with name:id (syntax-local-infer-name stx)
+       #'(make-multi-var-taylor-ish lst #:name 'name)]
+      [(multi-var-taylor-ish lst:expr)
+       #'(make-multi-var-taylor-ish lst)]
+      [(multi-var-taylor-ish . (~and stuff (~no-order lst:expr (~seq #:name name:expr))))
+       #'(make-multi-var-taylor-ish . stuff)]
+      [make-multi-var-taylor-ish:id #'make-multi-var-taylor-ish])))
+
 (module+ test
   (define-syntax (chk stx)
     (define-syntax-class cls
@@ -87,6 +130,7 @@
       (define f
         (multi-var-taylor-ish
          (list (array 1))))
+      (check-equal? (procedure-arity f) 0)
       (check-equal? (f) 1))
     (test-case "f(x) = 1 + 2*x"
       (define (g x) (+ 1 (* 2 x)))
@@ -94,6 +138,7 @@
         (multi-var-taylor-ish
          (list (array 1)
                (array #[2]))))
+      (check-equal? (procedure-arity f) 1)
       (check-equal? (f 0) 1)
       (check-equal? (f 1) 3)
       (check-equal? (f 2) 5)
@@ -107,6 +152,7 @@
          (list (array 1)
                (array #[2])
                (array #[#[6]]))))
+      (check-equal? (procedure-arity f) 1)
       (check-equal? (f 0) 1)
       (check-equal? (f 1) 6)
       (check-equal? (f 2) 17)
@@ -119,6 +165,7 @@
         (multi-var-taylor-ish
          (list (array 1)
                (array #[2 3]))))
+      (check-equal? (procedure-arity f) 2)
       (chk [(f 0 0) 1] [(f 1 0) 3] [(f 2 0) 5]
            [(f 0 1) 4] [(f 1 1) 6] [(f 2 1) 8]
            [(f 0 2) 7] [(f 1 2) 9] [(f 2 2) 11])
@@ -133,6 +180,7 @@
          (list (array 1)
                (array #[2 3])
                (array #[#[8 5] #[5 12]]))))
+      (check-equal? (procedure-arity f) 2)
       (chk [(f 0 0)  1] [(f 1 0)  7] [(f 2 0) 21]
            [(f 0 1) 10] [(f 1 1) 21] [(f 2 1) 40]
            [(f 0 2) 31] [(f 1 2) 47] [(f 2 2) 71])
@@ -159,7 +207,7 @@
   (multi-var-taylor-ish
    (list (array c)
          (array #[b])
-         (array #[(* 2 c)]))))
+         (array #[#[(* 2 c)]]))))
 
 (define-match-expander ax^2+bx+c
   (syntax-parser

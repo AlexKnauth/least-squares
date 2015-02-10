@@ -10,7 +10,7 @@
          ax^2+bx+c
          (struct-out power-function)
          (struct-out c*e^ax)
-         (struct-out multi-var-taylor-ish)
+         multi-var-taylor-ish
          ax+by+c
          ax+by+cz+d
          power-function:
