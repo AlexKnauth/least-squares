@@ -6,14 +6,7 @@
          best-polynomial
          exponential-least-squares/logy
          linear-least-squares-3d
-         mx+b
-         ax^2+bx+c
-         (struct-out power-function)
-         (struct-out c*e^ax)
-         multi-var-taylor-ish
-         ax+by+c
-         ax+by+cz+d
-         power-function:
+         (all-from-out "function-struct.rkt")
          )
 
 (require racket/match
@@ -23,6 +16,7 @@
          syntax/parse/define
          infix/infix-macro
          "utils.rkt"
+         "function-struct.rkt"
          (for-syntax racket/base syntax/parse))
 (module+ test (require rackunit))
 
