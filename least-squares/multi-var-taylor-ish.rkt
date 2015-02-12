@@ -1,6 +1,8 @@
 #lang racket/base
 
 (provide multi-var-taylor-ish
+         zero-f
+         const
          mx+b
          ax^2+bx+c
          ax+by+c
@@ -69,6 +71,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define zero-f
+  (multi-var-taylor-ish '()))
+
+(define (make-const c)
+  (multi-var-taylor-ish
+   (list (array c))))
+
+(define-match-expander const
+  (syntax-parser
+    [(const c:expr)
+     #'(multi-var-taylor-ish
+        (list (array: c)))])
+  (make-var-like/pat #'make-const (~or :id (:id :expr))))
+
 (define (make-mx+b m b)
   (multi-var-taylor-ish
    (list (array b)
@@ -86,7 +102,7 @@
   (multi-var-taylor-ish
    (list (array c)
          (array #[b])
-         (array #[#[(* 2 c)]]))))
+         (array #[#[(* 2 a)]]))))
 
 (define-match-expander ax^2+bx+c
   (syntax-parser
@@ -118,7 +134,7 @@
 (define-match-expander ax+by+cz+d
   (syntax-parser [(ax+by+cz+d a:expr b:expr c:expr d:expr)
                   #'(multi-var-taylor-ish
-                     (list (array: c)
+                     (list (array: d)
                            (array: #[a b c])))])
   (make-var-like/pat #'make-ax+by+cz+d (~or :id (:id :expr :expr :expr :expr))))
 
@@ -135,6 +151,7 @@
       (define f
         (multi-var-taylor-ish
          (list (array 1))))
+      (check-equal? (const 1) f)
       (check-equal? (procedure-arity f) 0)
       (check-equal? (f) 1))
     (test-case "f(x) = 1 + 2*x"
@@ -143,6 +160,7 @@
         (multi-var-taylor-ish
          (list (array 1)
                (array #[2]))))
+      (check-equal? (mx+b 2 1) f)
       (check-equal? (procedure-arity f) 1)
       (check-equal? (f 0) 1)
       (check-equal? (f 1) 3)
@@ -157,6 +175,7 @@
          (list (array 1)
                (array #[2])
                (array #[#[6]]))))
+      (check-equal? (ax^2+bx+c 3 2 1) f)
       (check-equal? (procedure-arity f) 1)
       (check-equal? (f 0) 1)
       (check-equal? (f 1) 6)
@@ -170,6 +189,7 @@
         (multi-var-taylor-ish
          (list (array 1)
                (array #[2 3]))))
+      (check-equal? (ax+by+c 2 3 1) f)
       (check-equal? (procedure-arity f) 2)
       (chk [(f 0 0) 1] [(f 1 0) 3] [(f 2 0) 5]
            [(f 0 1) 4] [(f 1 1) 6] [(f 2 1) 8]
