@@ -12,17 +12,31 @@
          syntax/parse/define
          "../utils.rkt"
          "../multi-var-taylor-ish.rkt"
+         "../vector-function.rkt"
          "../function-struct.rkt"
          )
 (module+ test
   (require rackunit))
 
-;; partial-derivative : Multi-Var-Taylor-Ish Natural -> Multi-Var-Taylor-Ish
+;; partial-derivative : Function-Struct Natural -> Function-Struct
 (define (partial-derivative f i)
-  (match-define (multi-var-taylor-ish lst) f)
-  (multi-var-taylor-ish (partial-derivative/lst lst i)))
+  (match f
+    [(multi-var-taylor-ish lst)
+     (multi-var-taylor-ish (partial-derivative/multi-var-taylor-ish-lst lst i))]
+    [(vector-function lst)
+     (vector-function (for/list ([f (in-list lst)])
+                        (partial-derivative f i)))]
+    [(power-function hsh)
+     #:when (zero? i)
+     (power-function (for/hash ([(power coefficient) (in-hash hsh)]
+                                #:unless (or (zero? coefficient) (zero? power)))
+                       (values (sub1 power) (* power coefficient))))]
+    [(c*e^ax c a)
+     #:when (zero? i)
+     (c*e^ax (* a c) a)]
+    ))
 
-(define (partial-derivative/lst lst i)
+(define (partial-derivative/multi-var-taylor-ish-lst lst i)
   (match lst
     [(list) '()]
     [(list (array: C)) '()]
@@ -92,5 +106,9 @@
     (check-f= fx gx ∆ 100 random-args)
     (check-f= fy gy ∆ 100 random-args)
     )
+  (check-equal? (partial-derivative
+                 (power-function: a x^4 + b x^3 + c x^2 + d x + e) 0)
+                (power-function: (* 4 a) x^3 + (* 3 b) x^2 + (* 2 c) x + d))
+  (check-equal? (partial-derivative (c*e^ax c a) 0) (c*e^ax (* a c) a))
   )
 

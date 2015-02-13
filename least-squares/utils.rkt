@@ -4,6 +4,8 @@
          (for-syntax (all-defined-out)))
 
 (require racket/match
+         racket/list
+         racket/function
          math/array
          math/matrix
          syntax/parse/define
@@ -53,6 +55,35 @@
       (lambda (stx)
         (syntax-parse stx
           [pat (trans stx)])))))
+
+(define (arity->nat a)
+  (let ([a (normalize-arity a)])
+    (cond [(exact-nonnegative-integer? a) a]
+          [(arity-at-least? a) (arity-at-least-value a)]
+          [(list? a) (arity->nat (last a))]
+          [else (error 'arity->nat "given: ~v" a)])))
+
+(define (arity->best-nat n a)
+  (let ([a (normalize-arity a)])
+    (cond [(exact-nonnegative-integer? a) a]
+          [(arity-at-least? a)
+           (define v (arity-at-least-value a))
+           (cond [(< n v) v]
+                 [else n])]
+          [(list? a)
+           (match a
+             [(list) (error 'arity->best-nat "a is empty")]
+             [(cons fst (and rst (not '())))
+              (cond [(< fst n) (arity->best-nat n rst)]
+                    [else fst])])])))
+
+(define (app/forget-arity f . args)
+  (define n (length args))
+  (define a (arity->best-nat (length args) (procedure-arity f)))
+  (cond [(= a n) (apply f args)]
+        [(< a n) (apply f (take args a))]
+        [(< n a) (apply f (append args (make-list (- a n) 0)))]
+        [else (error 'app/forget-arity "this should never happen")]))
 
 (define (exact-random n)
   (+ (random n) (inexact->exact (random))))

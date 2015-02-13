@@ -1,13 +1,15 @@
 #lang racket/base
 
 (provide (all-defined-out)
-         (all-from-out "multi-var-taylor-ish.rkt"))
+         (all-from-out "multi-var-taylor-ish.rkt"
+                       "vector-function.rkt"))
 
 (require racket/match
          racket/string
          syntax/parse/define
          "utils.rkt"
          "multi-var-taylor-ish.rkt"
+         "vector-function.rkt"
          (for-syntax racket/base syntax/parse))
 
 (define-simple-macro (define-function-struct name:id (field:id ...) [#:λ args result:expr ...+])
@@ -23,10 +25,6 @@
              (* coefficient (expt x power)))])
 
 (define-function-struct c*e^ax (c a) [#:λ (x) (* c (exp (* a x)))])
-
-(define-function-struct vector-function (lst)
-  [#:λ args (for/list ([f (in-list lst)])
-              (apply f args))])
 
 
 (begin-for-syntax
