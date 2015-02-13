@@ -14,6 +14,7 @@
          "multi-var-taylor-ish.rkt"
          "vector-function.rkt"
          "function-struct.rkt"
+         "macros.rkt"
          )
 (module+ test
   (require rackunit))
