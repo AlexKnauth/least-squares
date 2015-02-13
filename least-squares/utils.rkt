@@ -85,6 +85,10 @@
         [(< n a) (apply f (append args (make-list (- a n) 0)))]
         [else (error 'app/forget-arity "this should never happen")]))
 
+(define (array-ref/else arr is [failure (λ () #f)])
+  (with-handlers ([exn:fail? (λ (e) (failure))])
+    (array-ref arr is)))
+
 (define (exact-random n)
   (+ (random n) (inexact->exact (random))))
 

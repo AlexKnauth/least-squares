@@ -57,10 +57,6 @@
               old-n))))]
     ))
 
-(define (array-ref/else arr is [failure (λ () #f)])
-  (with-handlers ([exn:fail? (λ (e) (failure))])
-    (array-ref arr is)))
-
 (define (vector-insert v i x)
   (define-values (v1 v2) (vector-split-at v i))
   (vector-append v1 (vector x) v2))
