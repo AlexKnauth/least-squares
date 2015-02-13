@@ -11,9 +11,9 @@
          math/array
          syntax/parse/define
          "../utils.rkt"
-         "../multi-var-taylor-ish.rkt"
-         "../vector-function.rkt"
-         "../function-struct.rkt"
+         "multi-var-taylor-ish.rkt"
+         "vector-function.rkt"
+         "function-struct.rkt"
          )
 (module+ test
   (require rackunit))

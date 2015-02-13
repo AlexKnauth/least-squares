@@ -7,7 +7,7 @@
 (require racket/match
          racket/string
          syntax/parse/define
-         "utils.rkt"
+         "../utils.rkt"
          "multi-var-taylor-ish.rkt"
          "vector-function.rkt"
          (for-syntax racket/base syntax/parse))

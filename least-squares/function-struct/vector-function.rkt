@@ -6,7 +6,7 @@
          racket/list
          racket/splicing
          kw-utils/arity+keywords
-         "utils.rkt"
+         "../utils.rkt"
          (for-syntax racket/base
                      syntax/parse
                      ))

@@ -13,7 +13,7 @@
          racket/splicing
          math/array
          math/number-theory
-         "utils.rkt"
+         "../utils.rkt"
          (for-syntax racket/base
                      syntax/parse
                      ))
