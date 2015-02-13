@@ -24,6 +24,10 @@
 
 (define-function-struct c*e^ax (c a) [#:λ (x) (* c (exp (* a x)))])
 
+(define-function-struct vector-function (lst)
+  [#:λ args (for/list ([f (in-list lst)])
+              (apply f args))])
+
 
 (begin-for-syntax
   (define-splicing-syntax-class x^n #:datum-literals (x^ ^ x)

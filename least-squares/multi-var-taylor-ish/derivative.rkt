@@ -1,6 +1,8 @@
 #lang racket/base
 
-(provide partial-derivative)
+(provide partial-derivative
+         gradient
+         )
 
 (require racket/match
          racket/list
@@ -10,6 +12,7 @@
          syntax/parse/define
          "../utils.rkt"
          "../multi-var-taylor-ish.rkt"
+         "../function-struct.rkt"
          )
 (module+ test
   (require rackunit))
@@ -46,6 +49,12 @@
 (define (vector-insert v i x)
   (define-values (v1 v2) (vector-split-at v i))
   (vector-append v1 (vector x) v2))
+
+(define (gradient f)
+  (define d (procedure-arity f))
+  (vector-function
+   (for/list ([i (in-range d)])
+     (partial-derivative f i))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
