@@ -45,6 +45,10 @@
   (syntax-parser [(-: pat:expr) #'(app - pat)])
   (make-variable-like-transformer #'-))
 
+(define-match-expander *:
+  (syntax-parser [(*: a:number pat:expr) #'(app (λ (x) (/ x a)) pat)])
+  (make-variable-like-transformer #'*))
+
 (define-match-expander hash-table:
   (syntax-parser [(hash-table: stuff ...) #'(hash-table stuff ...)])
   (syntax-parser [(hash-table: [k:expr v:expr] ...) #'(make-immutable-hash (list (cons k v) ...))]))
