@@ -15,7 +15,8 @@
          "vector-function.rkt"
          "function-struct.rkt"
          "macros.rkt"
-         )
+         (for-syntax racket/base
+                     ))
 (module+ test
   (require rackunit))
 
@@ -107,5 +108,12 @@
                  (power-function: a x^4 + b x^3 + c x^2 + d x + e) 0)
                 (power-function: (* 4 a) x^3 + (* 3 b) x^2 + (* 2 c) x + d))
   (check-equal? (partial-derivative (c*e^ax c a) 0) (c*e^ax (* a c) a))
+  (define-syntax mvt: (make-rename-transformer #'multi-var-taylor-ish:))
+  (check-equal? (partial-derivative
+                 (mvt: 7 x ^ 5 y + 13 x ^ 2 y ^ 3) 0)
+                (mvt: (* 5 7) x ^ 4 y + (* 2 13) x y ^ 3))
+  (check-equal? (partial-derivative
+                 (mvt: 7 x ^ 5 y + 13 x ^ 2 y ^ 3) 1)
+                (mvt: 7 x ^ 5 + (* 3 13) x ^ 2 y ^ 2))
   )
 
