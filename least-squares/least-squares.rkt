@@ -1,4 +1,4 @@
-#lang sweet-exp racket/base
+#lang postfix-dot-notation sweet-exp racket/base
 
 provide linear-least-squares
         quadratic-least-squares
@@ -15,7 +15,6 @@ require racket/match
         syntax/parse/define
         infix/infix-macro
         my-cond/iffy
-        postfix-dot-notation
         "utils.rkt"
         "function-struct.rkt"
         for-syntax racket/base syntax/parse
